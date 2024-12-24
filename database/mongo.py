@@ -23,7 +23,7 @@ class AsyncMongoDB:
                 return True
             except ConnectionFailure as ex:
                 pass
-                #record_log(ex,get_calling_module_name(),get_calling_function_name(), LogLevel.ERROR)
+                
         return False
     
     async def connect(self, retries=5, delay=1):
@@ -40,12 +40,12 @@ class AsyncMongoDB:
                     if await self.is_connected():
                         return
                 except Exception as ex:
-                    #record_log(ex,get_calling_module_name(),get_calling_function_name(), LogLevel.ERROR)
+                    
                     if attempt < retries:
                         await asyncio.sleep(delay)
                         delay *= 2
-                    #else:
-                        #raise ex  # Re-raise the exception after the last attempt
+                    else:
+                        raise ex  
 
     async def get_database(self, db_name):
         await self.connect()  # Ensure connection is established
@@ -69,7 +69,6 @@ async def establish_connection():
     try:
         await mongo_db_instance.connect()
     except Exception as ex:
-        #record_log(ex,get_calling_module_name(),get_calling_function_name(), LogLevel.ERROR)
         raise
 
 

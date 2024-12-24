@@ -6,38 +6,27 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
-
-
 from starlette.applications import Starlette
 from starlette.requests import Request
 
-#####imports from your other modules
 
+from middleware import APIKeyMiddleware
 
-#from .monitoring import MonitoringMiddleware
-#from .utils.dependencies import get_logger
-
-#from .database.mongo import get_database
-#from .utils.config_loader import MONGO_CONNECTION_STRING
-
-from routers import (
-    test
-)
 
 from database.mongo import establish_connection, mongo_db_instance
-from database.mysql_main_db import engine as mainSQLDbEngine, init_db as initMySQLEngine
+from database.mysql_main_db import init_db
 
+
+from monitoring import MongoHandler, MonitoringMiddleware
 from utils.logger_setup import initialize_logger, MongoLogConfig
-from utils.logger_setup import get_logger
-from utils.config_loader import ENVIRONMENT
-from middleware import APIKeyMiddleware
-from utils.config_loader import API_KEY_HEADER_NAME, API_KEY_PASSPHRASE
+from utils.config_loader import ENVIRONMENT, MONGO_CONNECTION_STRING
+from utils.config_loader import API_KEY_HEADER_NAME
 
 
-#api_key_header = APIKeyHeader(name=API_KEY_HEADER_NAME, auto_error=True)
 
-
-#logger = get_logger()
+from routers import (
+    sample
+)
 
 
 
@@ -46,28 +35,34 @@ async def lifespan(app: FastAPI):
     # Startup code (previously @app.on_event("startup"))
     print("Starting up...")
     
-    
+
+    #### Establish Mongo DB Connection ####
 
     #await establish_connection()
-    #await initMySQLEngine()
 
-    # Initialize logger with your database name
-    # Configure your collection names (optional)
+    #### Establish Mongo DB Connection ####
+
+
+    #### Initialize logger with your database
+
+    # Configure your collection names
     #mongo_config = MongoLogConfig(
     #     info_collection="info",
     #     warning_collection="warning",
     #     error_collection="error"
     # )
-    # mongo_logger_db_name = "pk_logs_db"
+    # mongo_logger_db_name = "logs_db"
     # await initialize_logger(db_name=mongo_logger_db_name, mongo_config=mongo_config)
+
+    #### Initialize logger with your database
 
     yield
 
     # Shutdown code
     print("Shutting down...")
 
-    #await mongo_db_instance.close()
-    #await mainSQLDbEngine.dispose()
+    await mongo_db_instance.close()
+    
 
    
 
@@ -93,8 +88,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+#add the authentication middleware
 app.add_middleware(APIKeyMiddleware)
 
+
+#### Add API monitoring
+
+# mongo_handler = MongoHandler(
+#     connection_string=MONGO_CONNECTION_STRING,
+#     db_name="pk_api_monitor",
+#     collection_name="data"
+# )
+
+# app.add_middleware(MonitoringMiddleware, db_handler=mongo_handler)
+
+#### Add API monitoring
 
 
 original_openapi = app.openapi
@@ -118,25 +126,24 @@ app.openapi = custom_openapi
 
 
 
-@app.get("/")
-def read_root():
-    url = "https://YOURDOMAIN.com"
-    return RedirectResponse(url=url)
+
+
+#add new routers
+app.include_router(sample.router, tags=["Sample"])
+
+
+
 
 @app.get("/health-check")
 async def read_health():
     try:
-      
-        # Additional checks can go here
-        return {"status": "healthy"}
-
+        return JSONResponse(
+            status_code=200, content={"status": "healthy"}
+        )
     except Exception as ex:
         return JSONResponse(
             status_code=503, content={"status": "unhealthy", "details": str(ex)}
         )
-
-
-
 
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
@@ -151,8 +158,6 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
         )
     except:
         return
-
-
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -173,6 +178,6 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 
-#app.include_router(youtube.router, tags=["youtube"])
-#app.include_router(email.router, tags=["email"])
+
+
 
