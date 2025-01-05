@@ -82,10 +82,15 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://your-frontend-domain.com"],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Content-Type",
+        "Authorization",
+        API_KEY_HEADER_NAME,  # Include your custom API key header
+    ],
+    expose_headers=[API_KEY_HEADER_NAME],  # Allow frontend to read this header if needed
 )
 
 #add the authentication middleware
